@@ -24,14 +24,23 @@ object MasterDataNamespace {
     val VocabularyDataType_NodeId = node(4)
     val VocabularyListDataType_NodeId = node( 5)
 
-    val MasterDataManagerType = node(6)
-    val MasterDataManager = node( 10)
-    val MasterDataManagerType_GetMasterData = node( 7)
+    val MasterDataManagerType = node(164)
+    val MasterDataManager = node( 168)
+    val MasterDataManagerType_GetMasterData = node( 165)
+
+    val HeaderDataType_Encoding_DefaultBinary = node(86)
+    val HeaderDataType_NodeId = node(6)
+
+    val GetMasterDataInputDataType_NodeId = node(119)
+    val GetMasterDataInputDataType_Encoding_DefaultBinary = node(147)
+
 
     private fun node(id: Int) = NodeId(NAMESPACE_INDEX, id)
 
+
     fun dataTypeDictionary() = OpcUaBinaryDataTypeDictionary(MasterDataNamespace.URI).apply {
 
+        /*
         registerStructCodec(
                 VocabularyListDataType.Codec.asBinaryCodec(),
                 VocabularyListDataType.Codec.name,
@@ -56,5 +65,16 @@ object MasterDataNamespace {
                 VocabularyAttribute.Codec.asBinaryCodec(),
                 VocabularyAttribute.Codec.name,
                 MasterDataNamespace.VocabularyElementAttribute_Encoding_DefaultBinary)
+                */
+
+        registerStructCodec(
+                GetMasterDataInputDataType.Codec.asBinaryCodec(),
+                GetMasterDataInputDataType.Codec.name,
+                MasterDataNamespace.GetMasterDataInputDataType_Encoding_DefaultBinary)
+
+        registerStructCodec(
+                HeaderDataType.Codec.asBinaryCodec(),
+                HeaderDataType.Codec.name,
+                MasterDataNamespace.HeaderDataType_Encoding_DefaultBinary)
     }
 }

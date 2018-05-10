@@ -1,9 +1,8 @@
 package io.rezn.opcserialization.client
 
-import io.rezn.opcserialization.shared.KeyStoreLoader
-import io.rezn.opcserialization.shared.MasterDataNamespace
-import io.rezn.opcserialization.shared.VocabularyListDataType
+import io.rezn.opcserialization.shared.*
 import org.bouncycastle.jce.provider.BouncyCastleProvider
+import org.eclipse.milo.opcua.binaryschema.Struct
 import org.eclipse.milo.opcua.sdk.client.OpcUaClient
 import org.eclipse.milo.opcua.sdk.client.api.UaClient
 import org.eclipse.milo.opcua.sdk.client.api.config.OpcUaClientConfig
@@ -22,6 +21,7 @@ import org.eclipse.milo.opcua.stack.core.util.CryptoRestrictions
 import java.io.File
 import java.security.KeyPair
 import java.security.Security
+import java.util.*
 import java.util.concurrent.CompletableFuture
 
 const val applicationUri = "urn:rezn:md:client"
@@ -32,7 +32,7 @@ val identityProvider = AnonymousProvider()
 
 fun main(args: Array<String>) {
 
-    val endpoint = args.getOrElse(0,  { i ->  "opc.tcp://localhost:51510/rezn-opc" })
+    val endpoint = args.getOrElse(0,  { i ->  "opc.tcp://212.43.72.27:51510/UA/TestServer" })
 
     print("Connecting to server $endpoint")
 
@@ -52,20 +52,38 @@ fun main(args: Array<String>) {
 @Throws(Exception::class)
 private fun createClient(endpoint: String, clientKeyPair: KeyPair): UaClient = config(endpoint, clientKeyPair).run(::OpcUaClient)
 
-fun query(client: UaClient): CompletableFuture<VocabularyListDataType> {
+fun query(client: UaClient): CompletableFuture<String> {
+
+    val header = HeaderDataType(
+            msgId = UUID.randomUUID(),
+            correlationId = UUID.randomUUID(),
+            initiatorId = "initiator",
+            partnerId = "partner")
+
+    val query = GetMasterDataInputDataType()
 
     val request = CallMethodRequest(MasterDataNamespace.MasterDataManager,
             MasterDataNamespace.MasterDataManagerType_GetMasterData,
-            arrayOf(Variant(emptyArray<String>())))
+            arrayOf(Variant(header),
+                    Variant(query)))
 
     return client.call(request).thenApply { result ->
 
         if (result.statusCode.isBad)
             throw UaException(result.statusCode)
 
-        val output = result.outputArguments?.firstOrNull()?.value as? ExtensionObject
+        val outputHeader = result.outputArguments?.firstOrNull()?.value as? ExtensionObject
 
-        output?.run { decode<VocabularyListDataType>() }
+        val outputData = result.outputArguments?.getOrNull(1)?.value as? ExtensionObject
+
+        val c = client as OpcUaClient
+
+
+        val decode = outputData!!.decode<Struct>(c.dataTypeManager)
+
+        decode.getMember("Vocabularies")
+
+        outputData.toString()
     }
 }
 

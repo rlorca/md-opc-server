@@ -7,6 +7,7 @@ import org.eclipse.milo.opcua.stack.core.serialization.codecs.GenericDataTypeCod
 import org.eclipse.milo.opcua.stack.core.serialization.codecs.SerializationContext
 import org.eclipse.milo.opcua.stack.core.types.builtin.NodeId
 import org.eclipse.milo.opcua.stack.core.types.builtin.Variant
+import java.util.*
 
 abstract class BaseCodec<T>(val clazz: Class<T>) : GenericDataTypeCodec<T>() {
 
@@ -152,4 +153,64 @@ data class VocabularyAttribute(val uri: String,
             return VocabularyAttribute(uri, value.value)
         }
     }
+}
+
+data class HeaderDataType(val msgId: UUID,
+                          val correlationId: UUID,
+                          val initiatorId: String,
+                          val partnerId: String,
+                          val extensionParameters: Array<Variant> = emptyArray()) : UaStructure {
+
+    override fun getXmlEncodingId(): NodeId = MasterDataNamespace.HeaderDataType_Encoding_DefaultBinary
+
+    override fun getTypeId(): NodeId = MasterDataNamespace.HeaderDataType_NodeId
+
+    override fun getBinaryEncodingId(): NodeId = MasterDataNamespace.HeaderDataType_Encoding_DefaultBinary
+
+
+    companion object Codec : BaseCodec<HeaderDataType>(HeaderDataType::class.java) {
+
+        override fun encode(contexnt: SerializationContext?, data: HeaderDataType, encoder: UaEncoder) {
+
+            encoder.writeGuid("MessageID", data.msgId)
+            encoder.writeGuid("CorrelationID", data.correlationId)
+            encoder.writeString("InitiatorID", data.initiatorId)
+            encoder.writeString("PartnerID", data.partnerId)
+            encoder.writeArray("ExtensionParameters", data.extensionParameters, encoder::writeVariant)
+        }
+
+        override fun decode(context: SerializationContext?, decoder: UaDecoder): HeaderDataType {
+
+            return HeaderDataType(
+                    decoder.readGuid("MessageID"),
+                    decoder.readGuid("CorrelationID"),
+                    decoder.readString("InitiatorID"),
+                    decoder.readString("PartnerID"),
+                    decoder.readArray("ExtensionParameters", decoder::readVariant, Variant::class.java))
+        }
+    }
+
+}
+
+data class GetMasterDataInputDataType(val masterDataQuery: Array<String> = emptyArray()) : UaStructure {
+
+    override fun getXmlEncodingId(): NodeId = MasterDataNamespace.GetMasterDataInputDataType_Encoding_DefaultBinary
+
+    override fun getTypeId(): NodeId = MasterDataNamespace.GetMasterDataInputDataType_NodeId
+
+    override fun getBinaryEncodingId(): NodeId = MasterDataNamespace.GetMasterDataInputDataType_Encoding_DefaultBinary
+
+    companion object Codec : BaseCodec<GetMasterDataInputDataType>(GetMasterDataInputDataType::class.java) {
+
+        override fun encode(contexnt: SerializationContext?, data: GetMasterDataInputDataType, encoder: UaEncoder) {
+            encoder.writeArray("MasterDataQuery", data.masterDataQuery, encoder::writeString)
+        }
+
+        override fun decode(context: SerializationContext?, decoder: UaDecoder): GetMasterDataInputDataType {
+
+            return GetMasterDataInputDataType(
+                    decoder.readArray("MasterDataQuery", decoder::readString, String::class.java))
+        }
+    }
+
 }
